@@ -1,0 +1,48 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}   
+    {% if listings_with_bids %}
+    <h2>Active Listings</h2>
+        {% for listing_with_bid in listings_with_bids %}
+        <div class="listing">
+            <div class="listing-content">
+                <img src="{{ listing_with_bid.photo_url }}" alt="Listing Image" />
+                <div class="listing-details">
+                    <a href="{% url 'individual_listing' listing_with_bid.listing.id %}">
+                        <h3>{{ listing_with_bid.listing.title }}</h3>
+                    </a>
+                    <p>{{ listing_with_bid.listing.item_detail }}</p>
+                    {% if listing_with_bid.current_bid %}
+                        <p>Current Bid: ${{ listing_with_bid.current_bid.bid_amount }}</p>
+                    {% else %}
+                        <p>No bids yet</p>
+                    {% endif %}
+                    <p>Created: {{ listing_with_bid.listing.creation_time }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    
+    {% if closed_listings_with_bids %}
+        <h2>Closed Listings</h2>
+        {% for item in closed_listings_with_bids %}
+            <div class="listing">
+                <div class="listing-content">
+                    <img src="{{ item.listing.photo_url }}" alt="Listing Image" />
+                    <div class="listing-details">
+                        <h3>{{ item.listing.title }} (Closed)</h3>
+                        <p>{{ item.listing.item_detail }}</p>
+                        <p>Created: {{ item.listing.creation_time }}</p>
+                        {% if item.listing in won_listings %}
+                            <p>You won this auction!</p>
+                        {% else %}
+                            <p>Won by: {{ item.current_bid.bidder.username }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

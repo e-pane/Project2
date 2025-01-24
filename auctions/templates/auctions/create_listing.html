@@ -1,0 +1,56 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+    <h2>Create a Listing</h2>
+
+    <form action="{% url 'create_listing' %}" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <input class="form-control" autofocus type="text" name="title" placeholder="Title">
+        </div>
+        <div class="form-group">
+            <select class="form-control" name="category" id="category" placeholder="Category">
+                {% for category in categories %}
+                    <option value="{{ category.name }}">{{ category.name }}</option>
+                {% endfor %}
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="form-group" id="other_category" style="display:none">
+            <input class="form-control" name="other_category" type="text" placeholder="Enter your category">
+        </div> 
+        <div class="form-group">
+            <textarea id="description" name="description" rows="5" cols="40" placeholder="Enter item details here..."></textarea>
+        </div>
+        <div class="form-group">
+            <input type="number" name="starting_bid" step="0.01" placeholder="Starting Bid (e.g., 10.00)" min="0" required>
+        </div>
+        <div class="form-group">  
+            <input type="url" name="photo_url" placeholder="Enter photo URL (e.g., https://example.com/image.jpg)">
+        </div>
+        <div class="form-group">
+            <input class="btn btn-primary" type="submit" value="Create">
+        </div>
+    </form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const categorySelect = document.getElementById("category");
+        const otherCategoryInput = document.getElementById("other_category");
+
+        // Listen for changes to the category select element
+        categorySelect.addEventListener("change", function() {
+            // Check if the selected value is "Other"
+            if (this.value === "Other") {
+                otherCategoryInput.style.display = "block";  // Show the 'other_category' input field
+            } else {
+                otherCategoryInput.style.display = "none";   // Hide the 'other_category' input field
+            }
+        });
+    });
+</script>
+
+{% endblock %}

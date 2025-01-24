@@ -1,0 +1,45 @@
+body {
+    padding: 10px;
+}
+
+.button {
+    padding: 10px 15px;
+    background-color: #007BFF; /* Button color */
+    color: white;
+    text-decoration: none; /* Removes underline */
+    border-radius: 5px; /* Rounded corners */
+}
+
+.button:hover {
+    background-color: #0056b3; /* Darker color on hover */
+}
+/* Basic container styling */
+.listing {
+    margin: 20px; /* Add some space between listings */
+    padding: 10px;
+    border: 1px solid #ddd; /* Light border for visual separation */
+    border-radius: 5px;
+}
+
+/* Flexbox for horizontal layout */
+.listing-content {
+    display: flex;
+    align-items: center; /* Align items vertically in the center */
+    gap: 20px; /* Add space between the photo and details */
+}
+
+/* Image styling */
+.listing-content img {
+    width: 150px; /* Adjust image size */
+    height: auto; /* Maintain aspect ratio */
+    border-radius: 5px; /* Optional: rounded corners */
+}
+
+/* Details styling */
+.listing-details {
+    display: flex;
+    flex-direction: column; /* Stack details vertically */
+    justify-content: space-between; /* Space out details evenly if desired */
+}
+
+
