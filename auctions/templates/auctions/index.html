@@ -13,7 +13,7 @@
                     </a>
                     <p>{{ listing_with_bid.listing.item_detail }}</p>
                     {% if listing_with_bid.current_bid %}
-                        <p>Current Bid: ${{ listing_with_bid.current_bid.bid_amount }}</p>
+                        <p>Current Bid: ${{ listing_with_bid.current_bid }}</p>
                     {% else %}
                         <p>No bids yet</p>
                     {% endif %}
@@ -38,7 +38,7 @@
                         {% if item.listing in won_listings %}
                             <p>You won this auction!</p>
                         {% else %}
-                            <p>Won by: {{ item.current_bid.bidder.username }}</p>
+                            <p>Won by: {{ item.current_bidder.username }}</p>
                         {% endif %}
                     </div>
                 </div>

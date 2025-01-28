@@ -7,56 +7,69 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from decimal import Decimal
-from .helpers import get_listing_context
+from .helpers import get_listing_context, get_current_bid
 from .models import User, Listings, Category, Bids, Comment
 
 
 @login_required
-def add_bid(request, listing_id):
+def add_bid(request, listing_id): #add a bid to an active listing
 
     if request.method == "POST":
         try:
-            bid_amount = Decimal(request.POST.get("bid_amount"))
-
+            bid_amount = Decimal(request.POST.get("bid_amount")) #fetch form data from listing.html form
         except (TypeError, ValueError):
-            context = get_listing_context(listing_id)  
+            #call helper function to return a dictionary of the fields from Listings Model
+            context = get_listing_context(listing_id) 
+            #add a key of "bid_message" to the context dict 
             context["bid_message"] = "Bid amount must be a number greater than the starting and current bids"  # Add the message to the context
             return render(request, "auctions/listing.html", context)
         
-        listing = Listings.objects.get(pk=listing_id)
-        current_bid = get_current_bid(listing)
+        listing = Listings.objects.get(pk=listing_id) #get specific listing instance from Listings model
+        current_bid = get_current_bid(listing) #call helper to return current_bid as a decimal value
         
-        if bid_amount <= current_bid: 
-            context = get_listing_context(listing_id)
+        if bid_amount <= current_bid: # check if form submitted bid_amount is less than current_bid, if so
+            context = get_listing_context(listing_id) #fetch context dict
+            #add keys of "bid_message" and "bid_value" to the context dict with appropriate values 
             context["bid_message"] = "Bid amount must be greater than the current bid of: " 
-            context["current_bid"] = current_bid
             context["bid_value"] = current_bid
             return render(request, "auctions/listing.html", context)
 
+        #if submitted bid_amount is greater than current_bid, instantiate an instance of the Bids class
         bid=Bids(listing=listing, bid_amount=bid_amount, bidder=request.user)
         bid.save()
-
+        #fetch context dict again and add keys and values to the context dict
         context = get_listing_context(listing_id)
         context["bid_value"] = current_bid
-        context["current_bid"] = current_bid
+        context["current_bid"] = bid_amount
+        context["bid_value"] = bid_amount
         
         return render(request, "auctions/listing.html", context)
                 
-    return render(request, 'auctions/listing.html', get_listing_context(listing_id))
+    return render(request, "auctions/listing.html", context)
 
 @login_required
-def add_comment(request, listing_id):
+def add_comment(request, listing_id): #to add a comment to an individual listing
     if request.method == "POST":
-        listing = Listings.objects.get(id=listing_id)
-        comment = (request.POST.get("comment"))
-        Comment.objects.create(listing=listing, user=request.user, text=comment)
+        listing = Listings.objects.get(id=listing_id) #fetch the listing instance
+        comment = (request.POST.get("comment")) #fetch the form data called "comment"
+        #instantiate an instance of the Comment class
+        comment = Comment(listing=listing, user=request.user, text=comment)
+        comment.save()
 
-        current_bid = get_current_bid(listing)
+        current_bid = get_current_bid(listing) #call helper to retrieve current_bid as a value
 
-        context = get_listing_context(listing_id)
-        context['comments'] = listing.comments.all()
+        context = get_listing_context(listing_id) #call helper to fetch context dict then add keys:values
+        #specifically, use listing.comments to use foreign key to access comments for the given listing
+        #then use .all on listing.comments to get all of the comments for that listing
+        context['comments'] = listing.comments.all() 
         context['current_bid'] = current_bid
-        context['watchlist_item_count'] = request.user.watchlist.count()
+        #specifically watchlist is a ManytoMany field in the User model connecting User and Listings 
+        # models, where one User can have many listings on their watchlist, and any Listing can be on 
+        # many User's watchlist But instead of accessing the watchlist field of the User model, the User
+        # model also has a decorator that returns watchlist_item_count as an attribute. So 
+        # request.user.watchlist_item_count is the product of a decorator leaning on the manytomany
+        # field called watchlist in the user model - linking the user and Listings models 
+        context['watchlist_item_count'] = request.user.watchlist_item_count
 
         return render(request, "auctions/listing.html", context)
 
@@ -64,10 +77,9 @@ def add_comment(request, listing_id):
 def add_to_watchlist(request, listing_id):
     if request.method == "POST":
         try:
-            # Ensure the listing exists
-            listing = Listings.objects.get(id=listing_id)
-
-            
+            listing = Listings.objects.get(id=listing_id) #fetch correct listing instance
+            # use Python "not in" to say if the fetched instance isn't among all of the given user's
+            #
             if listing not in request.user.watchlist.all():
                 request.user.watchlist.add(listing)
             
@@ -78,7 +90,7 @@ def add_to_watchlist(request, listing_id):
 
             for listing in active_listings:
                 current_bid = get_current_bid(listing)
-                bid_value = current_bid.bid_amount if current_bid else None
+                bid_value = current_bid if current_bid else None
                 listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
@@ -104,12 +116,9 @@ def close_auction(request, listing_id):
     if request.method == "POST":
         listing = Listings.objects.get(pk=listing_id)
         current_bid = get_current_bid(listing)
+        current_bidder = Bids.objects.get(listing=listing, bid_amount=current_bid).bidder
 
-        if current_bid is None:
-            current_bid = listing.starting_bid
-
-        bidder = current_bid.bidder.username
-        listing.winner = current_bid.bidder
+        listing.winner = current_bidder
         listing.active_status = False
         listing.save()
 
@@ -117,18 +126,18 @@ def close_auction(request, listing_id):
             request.user.watchlist.remove(listing)
             request.user.save()
 
-        if request.user.username == bidder:
+        if request.user == current_bidder:
             return render(request, "auctions/listing.html", {
-                "auction_message":f"Congratulations { bidder }, you won this auction!!",
+                "auction_message":f"Congratulations { current_bidder.username }, you won this auction!!",
                 "listing": listing,
                 "current_bid": current_bid,
-                "bidder":bidder,
+                "bidder":current_bidder.username,
             })
         
         else:
             return render(request, "auctions/listing.html", {
                 "auction_message":"This Auction is Closed!!!",
-                "bidder":bidder, 
+                "bidder":current_bidder.username,
                 "current_bid":current_bid,
                 "listing": listing,
             })
@@ -141,9 +150,15 @@ def closed_listings(request):
 
     for listing in closed_listings:
                 current_bid = get_current_bid(listing)
+                if current_bid:
+                    current_bidder = Bids.objects.get(listing=listing, bid_amount=current_bid).bidder
+                else:
+                    current_bidder = None
+
                 closed_listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
+                    "current_bidder": current_bidder,
                 })
 
     return render(request, "auctions/index.html", {
@@ -215,7 +230,7 @@ def index(request):
     for listing in active_listings:
         if listing.id not in seen_ids:
             current_bid = get_current_bid(listing)
-            bid_value = current_bid.bid_amount if current_bid else None
+            bid_value = current_bid if current_bid else None
             listings_with_bids.append({
                 "listing":listing,
                 "current_bid":current_bid if current_bid else None,
@@ -236,11 +251,24 @@ def index(request):
 def individual_listing(request, listing_id):
     listing = Listings.objects.get(pk=listing_id)
 
+    if not listing.active_status:
+        current_bid = get_current_bid(listing)
+    
+        if current_bid:
+            current_bidder = Bids.objects.get(listing=listing, bid_amount=current_bid).bidder
+        else:
+            current_bidder = None
+    
+        context = {
+            "listing": listing,
+            "current_bid": current_bid if current_bid else None,
+            "current_bidder": current_bidder,
+            "auction_message": "This auction has ended.",
+        }
+
+        return render(request, "auctions/listing.html", context)
+    
     current_bid = get_current_bid(listing)
-    
-    if current_bid is None:
-        current_bid = listing.starting_bid
-    
     context = get_listing_context(listing_id)
     context['current_bid'] = current_bid
     context['watchlist_item_count'] = request.user.watchlist.count()
@@ -279,18 +307,27 @@ def login_view(request):
 
             for listing in active_listings:
                 current_bid = get_current_bid(listing)
+                current_bidder = ( 
+                    Bids.objects.get(listing=listing, bid_amount=current_bid).bidder
+                    if current_bid else None
+                )
                 listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
-                    "bid_value": current_bid.bid_amount if current_bid and current_bid.bidder == user else None,
+                    "bid_value": current_bid if current_bid and current_bidder == user else None,
                 })
 
             for listing in closed_listings:
                 current_bid = get_current_bid(listing)
+                current_bidder = (
+                Bids.objects.get(listing=listing, bid_amount=current_bid).bidder
+                if current_bid else None
+                )
+                
                 closed_listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
-                    "bid_value": current_bid.bid_amount if current_bid and current_bid.bidder == user else None,
+                    "bid_value": current_bid if current_bid and current_bidder == user else None,
                 })
 
             watchlist_item_count = request.user.watchlist.count()

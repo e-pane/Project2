@@ -15,7 +15,9 @@ def get_listing_context(listing_id):
         "listed_by": listing.listed_by,
         "category": listing.category,
         "bid_count": listing.bids.count(),
+        "active_status": listing.active_status,
         "watchlist_status": listing.watchlist_status,
         "starting_bid": listing.starting_bid,
+        "winner": listing.winner,
     }
 

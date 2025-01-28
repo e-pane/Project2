@@ -13,7 +13,7 @@
         {% endif %}
         {% if auction_message %}
         <h3>
-            {{ auction_message }} {{ bidder }} wins the auction with a bid of ${{ current_bid }}
+            {{ auction_message }} {{ current_bidder }} wins the auction with a bid of ${{ current_bid }}
         </h3>
         {% endif %}
     </div>
@@ -79,7 +79,9 @@
         {% if comments %}
             <ul>
                 {% for comment in comments %}
-                <li>{{ comment.text }}</li>
+                    {% if comment.text %}
+                        <li>{{ comment.text }}</li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         {% endif %}
