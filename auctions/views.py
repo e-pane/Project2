@@ -24,27 +24,20 @@ def add_bid(request, listing_id):
             return render(request, "auctions/listing.html", context)
         
         listing = Listings.objects.get(pk=listing_id)
-        starting_bid = listing.starting_bid 
-        current_bid = listing.bids.order_by('-timestamp').first()
-
-        if current_bid is None:
-            current_bid = starting_bid
-        else:
-            current_bid = current_bid.bid_amount
+        current_bid = get_current_bid(listing)
         
         if bid_amount <= current_bid: 
             context = get_listing_context(listing_id)
             context["bid_message"] = "Bid amount must be greater than the current bid of: " 
+            context["current_bid"] = current_bid
             context["bid_value"] = current_bid
             return render(request, "auctions/listing.html", context)
 
         bid=Bids(listing=listing, bid_amount=bid_amount, bidder=request.user)
         bid.save()
 
-        current_bid = listing.bids.order_by('-timestamp').first()
-
         context = get_listing_context(listing_id)
-        context["bid_value"] = current_bid.bid_amount
+        context["bid_value"] = current_bid
         context["current_bid"] = current_bid
         
         return render(request, "auctions/listing.html", context)
@@ -58,7 +51,7 @@ def add_comment(request, listing_id):
         comment = (request.POST.get("comment"))
         Comment.objects.create(listing=listing, user=request.user, text=comment)
 
-        current_bid = listing.bids.order_by('-timestamp').first()
+        current_bid = get_current_bid(listing)
 
         context = get_listing_context(listing_id)
         context['comments'] = listing.comments.all()
@@ -84,7 +77,7 @@ def add_to_watchlist(request, listing_id):
             listings_with_bids = []
 
             for listing in active_listings:
-                current_bid = listing.bids.order_by('-timestamp').first()
+                current_bid = get_current_bid(listing)
                 bid_value = current_bid.bid_amount if current_bid else None
                 listings_with_bids.append({
                     "listing": listing,
@@ -110,7 +103,7 @@ def categories(request):
 def close_auction(request, listing_id):
     if request.method == "POST":
         listing = Listings.objects.get(pk=listing_id)
-        current_bid = listing.bids.order_by('-timestamp').first()
+        current_bid = get_current_bid(listing)
 
         if current_bid is None:
             current_bid = listing.starting_bid
@@ -147,7 +140,7 @@ def closed_listings(request):
     won_listings = closed_listings.filter(winner=request.user) if request.user.is_authenticated else []
 
     for listing in closed_listings:
-                current_bid = listing.bids.order_by('-timestamp').first()
+                current_bid = get_current_bid(listing)
                 closed_listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
@@ -200,7 +193,7 @@ def create_listing(request):
         for listing in listings:
             if listing.id not in seen_ids:
                 seen_ids[listing.id] = True
-                current_bid = listing.bids.order_by('-timestamp').first()
+                current_bid = get_current_bid(listing)
                 listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
@@ -221,7 +214,7 @@ def index(request):
 
     for listing in active_listings:
         if listing.id not in seen_ids:
-            current_bid = listing.bids.order_by('-timestamp').first()
+            current_bid = get_current_bid(listing)
             bid_value = current_bid.bid_amount if current_bid else None
             listings_with_bids.append({
                 "listing":listing,
@@ -232,7 +225,7 @@ def index(request):
         seen_ids.add(listing.id)
 
     for listing in closed_listings:
-        current_bid = listing.bids.order_by('-timestamp').first()  # Ensure correct bid is attached
+        current_bid = get_current_bid(listing)  # Ensure correct bid is attached
         listing.current_bid = current_bid 
 
     return render(request, "auctions/index.html", {
@@ -243,7 +236,7 @@ def index(request):
 def individual_listing(request, listing_id):
     listing = Listings.objects.get(pk=listing_id)
 
-    current_bid = listing.bids.order_by('-timestamp').first()
+    current_bid = get_current_bid(listing)
     
     if current_bid is None:
         current_bid = listing.starting_bid
@@ -285,7 +278,7 @@ def login_view(request):
             closed_listings_with_bids = []
 
             for listing in active_listings:
-                current_bid = listing.bids.order_by('-timestamp').first()
+                current_bid = get_current_bid(listing)
                 listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,
@@ -293,7 +286,7 @@ def login_view(request):
                 })
 
             for listing in closed_listings:
-                current_bid = listing.bids.order_by('-timestamp').first()
+                current_bid = get_current_bid(listing)
                 closed_listings_with_bids.append({
                     "listing": listing,
                     "current_bid": current_bid if current_bid else None,

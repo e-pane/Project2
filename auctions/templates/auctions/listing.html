@@ -13,7 +13,7 @@
         {% endif %}
         {% if auction_message %}
         <h3>
-            {{ auction_message }} {{ bidder }} wins the auction with a bid of ${{ current_bid.bid_amount }}
+            {{ auction_message }} {{ bidder }} wins the auction with a bid of ${{ current_bid }}
         </h3>
         {% endif %}
     </div>
@@ -37,7 +37,7 @@
 
         <h5>{{ item_detail }}</h5>
 
-        <h2>${{ current_bid.bid_amount }}</h2>
+        <h2>${{ current_bid }}</h2>
 
         <h4>Details</h4>
         <ul style="list-style-type: none; padding-left: 20px;">
@@ -46,7 +46,7 @@
         </ul>
 
         <h6> {{ bid_count }} bid(s) so far
-            {% if current_bid.bid_amount == bid_value %}
+            {% if current_bid == bid_value %}
                 Your bid is the current bid!
             {% endif %}
         </h6>
